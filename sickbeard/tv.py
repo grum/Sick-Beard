@@ -67,6 +67,7 @@ class TVShow(object):
         self.paused = 0
         self.air_by_date = 0
         self.lang = lang
+        self.thexem = None
 
         self.lock = threading.Lock()
         self._isDirGood = False
@@ -80,6 +81,12 @@ class TVShow(object):
         self.loadFromDB()
 
         self.saveToDB()
+
+    def _getThexem(self):
+        if self.thexem is None:
+            self.thexem = helpers.getThexemData(self.tvdbid)
+
+        return self.thexem
 
     def _getLocation(self):
         # no dir check needed if missing show dirs are created during post-processing
@@ -448,6 +455,17 @@ class TVShow(object):
         # for now lets assume that any episode in the show dir belongs to that show
         season = parse_result.season_number if parse_result.season_number != None else 1
         episodes = parse_result.episode_numbers
+
+        # see if we need to re-index
+        thexem = self._getThexem()
+
+        if len(episodes) == 1 and len(thexem) > 1:
+            key = '{}x{}'.format(season, episodes[0])
+            if key in thexem:
+                season = thexem[key][0]
+                episodes = [thexem[key][1]]
+                logger.log("thexem updated from {} to {}x{}".format(key, season, episodes[0]), logger.DEBUG)
+
         rootEp = None
 
         # if we have an air-by-date show then get the real season/episode numbers

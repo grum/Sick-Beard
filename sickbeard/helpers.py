@@ -27,6 +27,11 @@ import time, sys
 
 from httplib import BadStatusLine
 
+try:
+    import json
+except ImportError:
+    from lib import simplejson as json
+
 from xml.dom.minidom import Node
 
 import sickbeard
@@ -698,3 +703,13 @@ def backupVersionedFile(oldFile, version):
         if numTries >= 10:
             logger.log(u"Unable to back up "+oldFile+", please do it manually.")
             sys.exit(1)
+
+def getThexemData(tvdbid):
+    """
+    Return a dict of: Scene.SxScene.E: [Tvdb.S, Tvdb.E]
+    """
+
+    url = 'http://thexem.de/map/all?origin=tvdb&id={}'.format(tvdbid)
+    data = json.load(urllib.urlopen(url))
+
+    return dict(("{}x{}".format(x['scene']['season'], x['scene']['episode']), [x['tvdb']['season'],x['tvdb']['episode']]) for x in data['data'] if x['scene']['season'] != x['tvdb']['season'] or x['scene']['episode'] != x['tvdb']['episode'])
